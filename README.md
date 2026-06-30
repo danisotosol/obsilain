@@ -6,6 +6,10 @@ Obsilain is a **CSS snippet** that layers a frosted-glass, translucent UI (every
 
 > It is a customization snippet, **not a standalone theme** — it builds on the Border theme and is best with a wallpaper of your choice.
 
+![Obsilain screenshot](screenshot.png)
+
+> The wallpaper shown is the user's own; it is not distributed with this repo.
+
 ## Quick install (script)
 
 Installs the Border theme + the snippet and enables them automatically. A timestamped backup of `.obsidian` is made first.
