@@ -1,0 +1,7 @@
+# Keep shell scripts LF so they run on macOS/Linux even when committed from Windows
+*.sh    text eol=lf
+# Windows script stays CRLF
+*.ps1   text eol=crlf
+# CSS/markdown normalized to LF
+*.css   text eol=lf
+*.md    text eol=lf
