@@ -6,6 +6,30 @@ Obsilain is a **CSS snippet** that layers a frosted-glass, translucent UI (every
 
 > It is a customization snippet, **not a standalone theme** — it builds on the Border theme and is best with a wallpaper of your choice.
 
+## Quick install (script)
+
+Installs the Border theme + the snippet and enables them automatically. A timestamped backup of `.obsidian` is made first.
+
+**Windows (PowerShell):**
+
+```powershell
+iwr https://raw.githubusercontent.com/danisotosol/obsilain/main/install.ps1 -OutFile install.ps1
+powershell -ExecutionPolicy Bypass -File install.ps1            # pick your vault when prompted
+# options:  -Beautitab   -Wallpaper "C:\path\to\image.jpg"
+```
+
+**macOS / Linux / Git-Bash:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/danisotosol/obsilain/main/install.sh -o install.sh
+bash install.sh                       # pick your vault when prompted
+# options:  --beautitab   --wallpaper /path/to/image.jpg
+```
+
+The script does **not** download any wallpaper (use your own — see [Set your wallpaper](#set-your-wallpaper)). Pass `--wallpaper` / `-Wallpaper` to wire one in automatically. After it finishes, reload Obsidian (`Ctrl/Cmd+R`).
+
+> Prefer doing it by hand? See [Install](#install) below.
+
 ## Requirements
 
 - **Obsidian** (tested on 1.12.x).
