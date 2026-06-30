@@ -1,0 +1,14 @@
+# OS / editor junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# tooling / assistant folders (never publish)
+.claude/
+.obsidian/
+
+# personal wallpapers (do not commit copyrighted images)
+*.jpg
+*.jpeg
+*.png
+*.webp

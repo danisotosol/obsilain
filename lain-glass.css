@@ -1,0 +1,413 @@
+/* ============================================================================
+   lain-glass.css  —  Serial Experiments Lain full-glass overlay for Obsidian
+   Loads ON TOP OF the Border theme (akifyss/obsidian-border).
+   Pure-CSS backdrop-filter glass (works on Windows Electron; the Obsidian
+   "Translucent window" setting is NOT required — Border paints panel
+   backgrounds unconditionally, so we just override those paints + blur).
+
+   The main thread defines the wallpaper separately as a BARE value, e.g.:
+       body { --lain-wp: "data:image/jpeg;base64,...."; }   (quoted data URI)
+   or  body { --lain-wp: https://host/lain.jpg; }            (bare URL)
+   It is consumed here as background-image: var(--lain-wp).
+   ========================================================================== */
+
+/* ---- 0. Wallpaper variable placeholder ----------------------------------
+   Valid empty fallback: a 1x1 transparent gif data URI so the snippet is
+   self-valid and var(--lain-wp) always resolves. The main thread
+   overrides --lain-wp with the real (quoted) data URI or bare URL. */
+:root,
+body {
+  --lain-wp: url("data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==") /* <-- PON TU WALLPAPER AQUI (ver README) */;
+  --lain-blur: 12px;       /* main-panel glass blur */
+  --lain-blur-modal: 44px; /* modal / popover / palette glass blur */
+  --lain-tint: rgba(8, 18, 26, 0.32);        /* dark navy-teal panel tint */
+  --lain-tint-strong: rgba(6, 14, 20, 0.44); /* sidebars / headers slightly denser */
+  --lain-tint-modal: rgba(8, 18, 26, 0.22);  /* modals: lighter, heavier blur */
+  --lain-cyan: #5fd0e6;
+  --lain-cyan-hover: #7fdcee;
+}
+
+/* ============================================================================
+   1. WALLPAPER — fixed, full-bleed, behind everything.
+   Border paints the app background via:
+       body:not(.is-mobile):has(>.app-container){ background:var(--background-underlying); }
+   (NO !important, specificity 0,2,1). We override that exact element with an
+   equal/higher specificity selector + !important longhands so the Lain image
+   wins, pinned with background-attachment:fixed so panels float over it.
+   ========================================================================== */
+body:not(.is-mobile):has(> .app-container),
+body.theme-dark:not(.is-mobile):has(> .app-container),
+body.theme-light:not(.is-mobile):has(> .app-container) {
+  background-image: var(--lain-wp) !important;
+  background-color: #05080d !important;     /* fallback before image loads / behind transparency */
+  background-size: cover !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
+  background-blend-mode: normal !important;
+}
+
+/* Feed Border's own underlying var too (forward-compat / any reader of it). */
+body,
+body.theme-dark,
+body.theme-light {
+  --background-underlying: var(--lain-wp) !important;
+}
+
+/* Structural containers above the body: force transparent so the fixed body
+   image shows through. (Border already clears most of these.) */
+body:not(.is-mobile) .app-container,
+body:not(.is-mobile) .horizontal-main-container,
+body:not(.is-mobile) .workspace,
+body:not(.is-mobile) .workspace > .workspace-split,
+body:not(.is-mobile) .workspace-ribbon,
+body:not(.is-mobile) .titlebar,
+body:not(.is-mobile) .status-bar {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* ============================================================================
+   2. FULL GLASS — make every panel translucent + blurred.
+
+   2a. Border paints the editor + sidebar regions with:
+         ...workspace-tabs:not(.mod-top){ background:var(--background-mod-*-split) !important; }
+       on a VERY specific selector (~0,7,2) + !important. We CANNOT beat that by
+       redefining --background-mod-*-split on body (Border's
+       body.theme-dark.mod-*-split-background-primary-dark sets it
+       !important at 0,2,0, which outranks our body 0,1,0). By DEFAULT that var
+       resolves to var(--background-primary). Border defines --background-primary
+       WITHOUT !important (e.g. on .theme-dark), so our --background-primary:
+       transparent !important wins regardless of specificity, which makes the
+       painted region transparent. We zero both the split vars AND the base
+       background vars so the result is transparent on every code path; the
+       direct panel paints in 2b/2c are the real guarantee.
+   ========================================================================== */
+body,
+body.theme-dark,
+body.theme-light {
+  --background-mod-root-split: transparent !important;
+  --background-mod-root-split-light: transparent !important;
+  --background-mod-root-split-dark: transparent !important;
+  --background-mod-left-split: transparent !important;
+  --background-mod-left-split-light: transparent !important;
+  --background-mod-left-split-dark: transparent !important;
+  --background-mod-right-split: transparent !important;
+  --background-mod-right-split-light: transparent !important;
+  --background-mod-right-split-dark: transparent !important;
+
+  --background-primary: transparent !important;
+  --background-primary-alt: transparent !important;
+  --background-secondary: transparent !important;
+  --background-secondary-alt: transparent !important;
+  --background-tertiary: transparent !important;
+  --background-editor: transparent !important;
+  --background-code: transparent !important;
+  --background-modifier-cover: transparent !important;
+
+  /* faint cyan border so panel edges read against the wallpaper */
+  --background-modifier-border: rgba(95, 208, 230, 0.14) !important;
+  --background-modifier-border-hover: rgba(95, 208, 230, 0.28) !important;
+  --background-modifier-border-focus: rgba(95, 208, 230, 0.40) !important;
+
+  /* translucent workspace bg used by Border's already-glass modals/menus */
+  --workspace-background-translucent: var(--lain-tint-modal) !important;
+}
+
+/* 2b. EDITOR / NOTE SURFACES — the painted region containers + inner text
+       surfaces. Tint + blur lives here so the wallpaper frosts through.
+       We paint the .workspace-split.mod-root region containers DIRECTLY with
+       !important (belt-and-suspenders over Border's high-specificity region
+       paints) — this is the real guarantee the center panel goes translucent. */
+.workspace-split.mod-root .workspace-tab-container,
+.workspace-split.mod-root .workspace-tabs,
+.workspace-split.mod-root .workspace-tabs.mod-top .workspace-tab-container,
+.workspace-split.mod-root .workspace-tabs:not(.mod-top),
+.workspace-leaf-content,
+.markdown-source-view,
+.cm-editor,
+.cm-s-obsidian,
+.markdown-preview-view,
+.view-content {
+  background: var(--lain-tint) !important;
+  background-color: var(--lain-tint) !important;
+  -webkit-backdrop-filter: blur(var(--lain-blur)) saturate(150%);
+  backdrop-filter: blur(var(--lain-blur)) saturate(150%);
+}
+
+/* Don't double-frost: the leaf-content already blurs, so the inner editor /
+   preview scroller stays tint-only to avoid a muddy double blur. */
+.workspace-leaf-content .cm-scroller,
+.workspace-leaf-content .markdown-preview-sizer,
+.markdown-source-view .cm-content {
+  background: transparent !important;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* 2c. SIDEBARS (left + right) — region containers, slightly denser tint.
+       Mirrors Border's own left/right split paint selectors so our blur lands
+       on the same elements it fills (Border uses .workspace-tabs:not(.mod-top)
+       etc. with !important; matching selectors + our !important win). */
+.workspace-split.mod-left-split,
+.workspace-split.mod-right-split,
+.workspace-split.mod-left-split .workspace-tab-container,
+.workspace-split.mod-left-split .workspace-tabs,
+.workspace-split.mod-left-split .workspace-tabs.mod-top .workspace-tab-container,
+.workspace-split.mod-left-split .workspace-tabs:not(.mod-top),
+.workspace-split.mod-right-split .workspace-tab-container,
+.workspace-split.mod-right-split .workspace-tabs,
+.workspace-split.mod-right-split .workspace-tabs.mod-top .workspace-tab-container,
+.workspace-split.mod-right-split .workspace-tabs:not(.mod-top) {
+  background: var(--lain-tint-strong) !important;
+  background-color: var(--lain-tint-strong) !important;
+  -webkit-backdrop-filter: blur(var(--lain-blur)) saturate(150%);
+  backdrop-filter: blur(var(--lain-blur)) saturate(150%);
+}
+
+/* file explorer / nav / outline inner surfaces transparent (parent blurs) */
+.nav-files-container,
+.nav-folder-children,
+.workspace-leaf-content[data-type="file-explorer"],
+.workspace-leaf-content[data-type="search"],
+.workspace-leaf-content[data-type="backlink"],
+.workspace-leaf-content[data-type="outgoing-link"],
+.workspace-leaf-content[data-type="tag"],
+.workspace-leaf-content[data-type="outline"],
+.workspace-leaf-content[data-type="bookmarks"],
+.workspace-leaf-content[data-type="graph"],
+.workspace-leaf-content[data-type="localgraph"] {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* 2d. TAB HEADERS — keep transparent (Border already does). */
+.workspace-tab-header-container,
+.workspace-tab-header-container-inner {
+  background: transparent !important;
+}
+
+/* 2e. STATUS BAR — translucent strip */
+.status-bar {
+  background: var(--lain-tint-strong) !important;
+  -webkit-backdrop-filter: blur(var(--lain-blur));
+  backdrop-filter: blur(var(--lain-blur));
+  border-top: 1px solid rgba(95, 208, 230, 0.12);
+}
+
+/* 2f. CODE BLOCKS / INLINE CODE / EMBEDS / TABLES — gentle tint, light blur */
+.HyperMD-codeblock,
+.markdown-rendered pre,
+.markdown-rendered code,
+.cm-inline-code {
+  background-color: rgba(0, 0, 0, 0.18) !important;
+}
+.markdown-embed,
+.markdown-embed-content,
+.internal-embed {
+  background: transparent !important;
+}
+.markdown-preview-view table,
+.markdown-source-view.mod-cm6 table,
+.cm-preview table {
+  background: transparent !important;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.markdown-preview-view th,
+.markdown-preview-view td,
+.markdown-source-view.mod-cm6 th,
+.markdown-source-view.mod-cm6 td {
+  background: transparent !important;
+}
+
+/* 2g. MODALS / MENUS / POPOVERS / SUGGESTIONS / COMMAND PALETTE — frostiest.
+       NOTE: .modal-bg is intentionally NOT in this group; it gets its own
+       dim-layer rule below (a frosted dim, not the panel tint). */
+.modal,
+.modal.mod-settings,
+.modal.mod-community-modal,
+.modal.mod-community-modal .modal-sidebar,
+.modal.mod-community-modal .vertical-tab-content,
+.modal.modal-search,
+.modal.suggester-modal,
+.modal.file-search-modal,
+.prompt,
+.prompt-results,
+.suggestion-container,
+.suggestion-popover,
+.popover,
+.popover.menu-container,
+.menu,
+.menu-list,
+.mod-context-menu,
+.hover-popover,
+.tooltip {
+  background-color: var(--lain-tint-modal) !important;
+  -webkit-backdrop-filter: blur(var(--lain-blur-modal)) saturate(160%);
+  backdrop-filter: blur(var(--lain-blur-modal)) saturate(160%);
+}
+/* modal dim layer: keep see-through so the wallpaper still reads behind dialogs */
+.modal-bg {
+  background-color: rgba(0, 0, 0, 0.35) !important;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.prompt-input,
+input.prompt-input,
+input.suggestion-input,
+.modal input[type="text"],
+.modal input[type="search"] {
+  background: rgba(255, 255, 255, 0.06) !important;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+/* ============================================================================
+   3. BEAUTITAB NEW-TAB VIEW — keep transparent so the same wallpaper shows.
+   ========================================================================== */
+.workspace-leaf-content[data-type="empty"],
+.workspace-leaf-content[data-type="empty"] .view-content,
+.workspace-leaf-content.beautitab,
+.workspace-leaf-content[data-type="beautitab-react-view"],
+.workspace-leaf-content[data-type="beautitab-react-view"] .view-content,
+.beautitab-react-root,
+.beautitab-root,
+.beautitab-wrapper,
+.beautitab-background {
+  background: transparent !important;
+  background-color: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+/* kill Beautitab's own background image/overlay so it can't hide the wallpaper */
+.beautitab-background img,
+.beautitab-background .beautitab-background-image,
+.beautitab-background-overlay,
+.beautitab-react-root .beautitab-background {
+  opacity: 0 !important;
+  display: none !important;
+}
+
+/* Clock: Beautitab forces a huge font-size — tame it to a sane size. */
+.workspace-tabs .workspace-leaf-content.beautitab .beautitab-root .beautitab-wrapper .beautitab-center .beautitab-time,
+.beautitab-react-view .beautitab-time,
+.beautitab-time {
+  font-size: 480% !important;
+  color: #eef9fc !important;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55);
+}
+
+/* Greeting + search tinted cyan */
+.beautitab-greeting,
+.beautitab-react-view .beautitab-greeting {
+  color: var(--lain-cyan) !important;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
+}
+/* OUTER width-container: NO box (this was the ghost/2nd pill). */
+.beautitab-search,
+.workspace-tabs .workspace-leaf-content.beautitab .beautitab-root .beautitab-wrapper .beautitab-bottom .beautitab-search {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+/* INNER pill only — the single visible search bar (full Beautitab chain to win). */
+.workspace-tabs .workspace-leaf-content.beautitab .beautitab-root .beautitab-wrapper .beautitab-bottom .beautitab-search .beautitab-search-wrapper {
+  background: var(--lain-tint-modal) !important;
+  -webkit-backdrop-filter: blur(var(--lain-blur)) !important;
+  backdrop-filter: blur(var(--lain-blur)) !important;
+  border: 1px solid rgba(95, 208, 230, 0.35) !important;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.45), 0 0 22px rgba(95, 208, 230, 0.12) !important;
+}
+.workspace-tabs .workspace-leaf-content.beautitab .beautitab-root .beautitab-wrapper .beautitab-bottom .beautitab-search .beautitab-search-wrapper:hover {
+  border-color: rgba(95, 208, 230, 0.55) !important;
+}
+.workspace-tabs .workspace-leaf-content.beautitab .beautitab-root .beautitab-wrapper .beautitab-bottom .beautitab-search .beautitab-search-wrapper .beautitab-search-text {
+  color: #eef9fc !important;
+}
+.workspace-tabs .workspace-leaf-content.beautitab .beautitab-root .beautitab-wrapper .beautitab-bottom .beautitab-search .beautitab-search-wrapper .beautitab-icon svg {
+  color: var(--lain-cyan) !important;
+}
+
+/* ============================================================================
+   4. NEON CYAN ACCENT (#5FD0E6 ≈ hsl(190, 71%, 64%)).
+   Border's base accent is set on plain `body` WITHOUT !important
+   (body{ --accent-h:232; ... }); its !important remaps are gated behind the
+   Style-Settings classes .accent-color-override-light/dark (absent here). So
+   our body !important wins outright. We set the derived *-light/*-dark vars
+   too, so even if those override classes ever appear, cyan still wins.
+   ========================================================================== */
+body,
+body.theme-dark,
+body.theme-light {
+  --accent-h: 190 !important;
+  --accent-s: 71% !important;
+  --accent-l: 64% !important;
+  --accent-light-h: 190 !important;
+  --accent-light-s: 71% !important;
+  --accent-light-l: 64% !important;
+  --accent-dark-h: 190 !important;
+  --accent-dark-s: 71% !important;
+  --accent-dark-l: 64% !important;
+
+  --color-accent: var(--lain-cyan) !important;
+  --color-accent-1: var(--lain-cyan) !important;
+  --color-accent-2: var(--lain-cyan-hover) !important;
+  --interactive-accent: var(--lain-cyan) !important;
+  --interactive-accent-hover: var(--lain-cyan-hover) !important;
+  --text-accent: var(--lain-cyan) !important;
+  --text-accent-hover: var(--lain-cyan-hover) !important;
+  --link-color: var(--lain-cyan) !important;
+  --link-color-hover: var(--lain-cyan-hover) !important;
+  --link-external-color: var(--lain-cyan) !important;
+  --checkbox-color: var(--lain-cyan) !important;
+  --text-selection: rgba(95, 208, 230, 0.28) !important;
+}
+
+/* ============================================================================
+   5. LEGIBILITY — keep text light and add soft shadow so it survives over a
+   busy wallpaper. (Only nudges text vars; does not recolor panels.)
+   ========================================================================== */
+body.theme-dark {
+  --text-normal: #e8f4f8 !important;
+  --text-muted: #aebfc6 !important;
+  --text-faint: #7d8c92 !important;
+  --text-on-accent: #04141a !important;
+  --text-highlight-bg: rgba(95, 208, 230, 0.22) !important;
+}
+
+/* subtle readability shadow on editor + preview text */
+.markdown-preview-view,
+.cm-s-obsidian .cm-line,
+.markdown-source-view.mod-cm6 .cm-line {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+/* headings keep the cyan underline accent crisp */
+.markdown-preview-view h1,
+.markdown-preview-view h2,
+.markdown-preview-view h3,
+.HyperMD-header {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+}
+
+/* active/hover states use cyan-tinted translucency instead of opaque fills */
+.nav-file-title.is-active,
+.nav-folder-title.is-active,
+.tree-item-self.is-active,
+.suggestion-item.is-selected,
+.menu-item:hover,
+.nav-file-title:hover,
+.nav-folder-title:hover {
+  background-color: rgba(95, 208, 230, 0.16) !important;
+}
+
+/* scrollbars subtle cyan */
+::-webkit-scrollbar-thumb {
+  background: rgba(95, 208, 230, 0.25) !important;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(95, 208, 230, 0.45) !important;
+}
